@@ -223,8 +223,8 @@ router.get('/today', authenticateToken, async (req, res) => {
         0 AS t_escogida,
         0 AS t_monado,
 
-        a.septimo_dia,
-        a.prop_sabado,
+        --a.septimo_dia,
+        --a.prop_sabado,
 
         e.name AS employee_name,
         e.dni AS employee_dni,
