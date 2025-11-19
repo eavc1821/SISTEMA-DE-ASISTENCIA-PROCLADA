@@ -128,6 +128,15 @@ router.post('/entry', authenticateToken, requireAdminOrScanner, async (req, res)
 /* ================================================================
    POST /api/attendance/exit - Registrar salida
 ================================================================ */
+
+const normalize = (str) =>
+  str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Quita acentos
+    .toLowerCase()
+    .trim();
+
+
 router.post('/exit', authenticateToken, requireAdminOrScanner, async (req, res) => {
   try {
     const { employee_id, hours_extra = 0, despalillo = 0, escogida = 0, monado = 0 } = req.body;
@@ -167,10 +176,13 @@ router.post('/exit', authenticateToken, requireAdminOrScanner, async (req, res) 
       WHERE id = $6
     `, [
       exitTime,
-      employee.type === "al dia" ? Number(hours_extra) : 0,
-      employee.type === "Producción" ? Number(despalillo) : 0,
-      employee.type === "Producción" ? Number(escogida) : 0,
-      employee.type === "Producción" ? Number(monado) : 0,
+        // AL DÍA (fix: normalizado)
+      normalize(employee.type) === "al dia" ? Number(hours_extra) : 0,
+
+      // PRODUCCIÓN
+      normalize(employee.type) === "produccion" ? Number(despalillo) : 0,
+      normalize(employee.type) === "produccion" ? Number(escogida) : 0,
+      normalize(employee.type) === "produccion" ? Number(monado) : 0,
       record.id
     ]);
 
