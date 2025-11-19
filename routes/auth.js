@@ -42,6 +42,14 @@ router.post('/login', async (req, res) => {
       });
     }
 
+        // Después de obtener user
+    console.log(">>> DEBUG USER:", user);
+
+    // Debug de contraseñas
+    console.log(">>> DEBUG BCRYPT:");
+    console.log("Password plano:", `"${password}"`);
+    console.log("Password hash BD:", `"${user.password}"`);
+
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
       return res.status(401).json({
