@@ -49,8 +49,11 @@ router.post('/login', async (req, res) => {
     console.log(">>> DEBUG BCRYPT:");
     console.log("Password plano:", `"${password}"`);
     console.log("Password hash BD:", `"${user.password}"`);
+    console.log(">>> USER.PASSWORD TYPE:", typeof user.password);
+    console.log(">>> LLEGAMOS A BCRYPT");
 
     const isValid = await bcrypt.compare(password, user.password);
+    console.log(">>> Resultado bcrypt.compare:", isValid);
     if (!isValid) {
       return res.status(401).json({
         success: false,
