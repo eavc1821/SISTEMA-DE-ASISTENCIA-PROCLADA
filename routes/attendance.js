@@ -248,8 +248,13 @@ router.get('/today', authenticateToken, async (req, res) => {
         // Horas
         entry_time: r.entry_time,
         exit_time: r.exit_time,
-        entry_time_display: r.entry_time ? r.entry_time.substring(0,5) : '-',
-        exit_time_display: r.exit_time ? r.exit_time.substring(0,5) : '-',
+        entry_time_display: r.entry_time 
+        ? new Date(r.entry_time).toLocaleTimeString("es-HN", { hour: "2-digit", minute: "2-digit", hour12: false })
+        : '-',
+
+      exit_time_display: r.exit_time
+        ? new Date(r.exit_time).toLocaleTimeString("es-HN", { hour: "2-digit", minute: "2-digit", hour12: false })
+        : '-',
         date: r.date,
 
         // Work state
