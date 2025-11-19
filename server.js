@@ -41,14 +41,27 @@ async function startServer() {
     app.use(express.json({ limit: '50mb' }));
     app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+    // ===============================================================
+// CORS CONFIG – (SiteGround Frontend + Localhost)
+// ===============================================================
+    const allowedOrigins = [
+      'https://gjd78.com',
+      'https://www.gjd78.com',
+      'http://localhost:5173'
+    ];
+
     app.use(cors({
-      origin: [
-        process.env.CORS_ORIGIN,
-        process.env.CORS_ORIGIN_DEV
-      ],
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        } else {
+          return callback(new Error(`❌ CORS bloqueado para origen: ${origin}`));
+        }
+      },
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
-      credentials: true,
+      credentials: true
     }));
 
     // ===============================================================
