@@ -94,9 +94,19 @@ router.post('/login', async (req, res) => {
 /* ================================================================
    POST /api/auth/verify
 ================================================================ */
-router.post('/verify', async (req, res) => {
+router.get('/verify', async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const authHeader = req.headers.authorization;
+
+      if (!authHeader) {
+        return res.status(401).json({
+          success: false,
+          error: 'jwt malformed'
+        });
+      }
+
+      const token = authHeader.split(' ')[1];
+
 
     if (!token) {
       return res.status(401).json({
