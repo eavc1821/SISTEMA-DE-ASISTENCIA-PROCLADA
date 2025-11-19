@@ -218,10 +218,10 @@ router.get('/today', authenticateToken, async (req, res) => {
         a.escogida,
         a.monado,
 
-        -- Totales monetarios
-        a.t_despalillo,
-        a.t_escogida,
-        a.t_monado,
+        -- Totales monetarios (no existen en DB)
+        0 AS t_despalillo,
+        0 AS t_escogida,
+        0 AS t_monado,
 
         a.septimo_dia,
         a.prop_sabado,
