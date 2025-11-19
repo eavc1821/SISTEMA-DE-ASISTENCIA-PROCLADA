@@ -167,7 +167,7 @@ router.post('/exit', authenticateToken, requireAdminOrScanner, async (req, res) 
       WHERE id = $6
     `, [
       exitTime,
-      employee.type === "Al Día" ? Number(hours_extra) : 0,
+      employee.type === "al dia" ? Number(hours_extra) : 0,
       employee.type === "Producción" ? Number(despalillo) : 0,
       employee.type === "Producción" ? Number(escogida) : 0,
       employee.type === "Producción" ? Number(monado) : 0,
