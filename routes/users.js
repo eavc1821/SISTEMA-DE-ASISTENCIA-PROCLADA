@@ -121,25 +121,27 @@ router.post('/', authenticateToken, requireSuperAdmin, async (req, res) => {
     const hashed = await bcrypt.hash(password, 10);
 
     const result = await runQuery(
-      `INSERT INTO users (username, password, role)
-       VALUES ($1, $2, $3)
-       RETURNING id`,
-      [username, hashed, role]
-    );
+        `INSERT INTO users (username, password, role)
+        VALUES ($1, $2, $3)
+        RETURNING id`,
+        [username, hashed, role]
+      );
 
-    const userId = result[0].id;
+      // FIX
+      const userId = result.id;
 
-    const newUser = await getQuery(
-      `SELECT id, username, role, created_at 
-       FROM users WHERE id = $1`,
-      [userId]
-    );
+      const newUser = await getQuery(
+        `SELECT id, username, role, created_at 
+        FROM users WHERE id = $1`,
+        [userId]
+      );
 
-    res.status(201).json({
-      success: true,
-      message: 'Usuario creado exitosamente',
-      data: newUser
-    });
+      res.status(201).json({
+        success: true,
+        message: 'Usuario creado exitosamente',
+        data: newUser
+      });
+
 
   } catch (error) {
     console.error('Error creando usuario:', error);
@@ -196,6 +198,7 @@ router.put('/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
     // Armar UPDATE dinámico
     let updateQuery = `UPDATE users SET username = $1, role = $2, updated_at = NOW()`;
     const params = [username, role];
+    let index = 3;
 
     if (password && password.trim() !== '') {
       if (password.length < 6) {
@@ -204,15 +207,18 @@ router.put('/:id', authenticateToken, requireSuperAdmin, async (req, res) => {
           error: 'La contraseña debe tener al menos 6 caracteres'
         });
       }
+
       const hashed = await bcrypt.hash(password, 10);
-      updateQuery += `, password = $3`;
+      updateQuery += `, password = $${index}`;
       params.push(hashed);
+      index++;
     }
 
-    updateQuery += ` WHERE id = ${password ? '$4' : '$3'}`;
+    updateQuery += ` WHERE id = $${index}`;
     params.push(userId);
 
     await runQuery(updateQuery, params);
+
 
     const updated = await getQuery(
       `SELECT id, username, role, created_at, updated_at 
