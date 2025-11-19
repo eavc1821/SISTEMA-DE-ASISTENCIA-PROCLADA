@@ -13,11 +13,15 @@ const JWT_SECRET = process.env.JWT_SECRET;
 ================================================================ */
 router.post('/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    let { username, password } = req.body;
+
+    // Limpia espacios invisibles o accidentalmente agregados
+    username = username?.trim();
+    password = password?.trim();
 
     console.log(">>> LOGIN DEBUG:");
-    console.log("Username recibido:", username);
-    console.log("Password recibido:", password);
+    console.log("Username recibido:", `"${username}"`);
+    console.log("Password recibido:", `"${password}"`);
 
     if (!username || !password) {
       return res.status(400).json({
@@ -26,25 +30,17 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    if (/\s/.test(username)) {
-      return res.status(400).json({
-        success: false,
-        error: 'El nombre de usuario no puede contener espacios'
-      });
-    }
-
     const user = await getQuery(
       'SELECT * FROM users WHERE username = $1 AND is_active = TRUE LIMIT 1',
       [username]
-      );
+    );
 
-      if (!user || !user.id) {
-        return res.status(401).json({
-          success: false,
-          error: 'Credenciales inválidas'
-        });
-      }
-
+    if (!user || !user.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Credenciales inválidas'
+      });
+    }
 
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
@@ -82,6 +78,7 @@ router.post('/login', async (req, res) => {
     });
   }
 });
+
 
 /* ================================================================
    POST /api/auth/verify
