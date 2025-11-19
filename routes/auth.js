@@ -34,16 +34,17 @@ router.post('/login', async (req, res) => {
     }
 
     const user = await getQuery(
-      'SELECT * FROM users WHERE username = $1 AND is_active = TRUE',
+      'SELECT * FROM users WHERE username = $1 AND is_active = TRUE LIMIT 1',
       [username]
-    );
+      );
 
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        error: 'Credenciales inválidas'
-      });
-    }
+      if (!user || !user.id) {
+        return res.status(401).json({
+          success: false,
+          error: 'Credenciales inválidas'
+        });
+      }
+
 
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
