@@ -89,18 +89,15 @@ router.post('/entry', authenticateToken, requireAdminOrScanner, async (req, res)
       }
     }
 
-    const now = new Date();
+    //const now = new Date();
 
-    const entryTimestamp = getLocalTimestamp(); // TIMESTAMP local
-    const entryTimeOnly = getLocalTimeOnly();   // HH:MM:SS local
+    const entryTimestamp = new Date();
 
 
-    const result = await runQuery(
-      `INSERT INTO attendance (employee_id, date, entry_time, created_at)
+    const result = await runQuery(`
+      INSERT INTO attendance (employee_id, date, entry_time, created_at)
       VALUES ($1, $2, $3, $4)
-      RETURNING id`,
-      [employee_id, today, entryTimeOnly, entryTimestamp]
-    );
+    `, [employee_id, today, entryTimestamp, entryTimestamp]);
 
 
       console.log("🟦 RESULTADO INSERT:", result);
@@ -158,10 +155,9 @@ router.post('/exit', authenticateToken, requireAdminOrScanner, async (req, res) 
       return res.status(400).json({ success: false, error: "No existe entrada pendiente para hoy" });
     }
 
-    const exitTime = getLocalTimeOnly();
+    const exitTime = new Date(); // TIMESTAMP real
 
-    await runQuery(
-      `
+    await runQuery(`
       UPDATE attendance
       SET exit_time = $1,
           hours_extra = $2,
@@ -169,16 +165,15 @@ router.post('/exit', authenticateToken, requireAdminOrScanner, async (req, res) 
           escogida = $4,
           monado = $5
       WHERE id = $6
-      `,
-      [
-        exitTime,
-        employee.type === "Al Día" ? Number(hours_extra) : 0,
-        employee.type === "Producción" ? Number(despalillo) : 0,
-        employee.type === "Producción" ? Number(escogida) : 0,
-        employee.type === "Producción" ? Number(monado) : 0,
-        record.id
-      ]
-    );
+    `, [
+      exitTime,
+      employee.type === "Al Día" ? Number(hours_extra) : 0,
+      employee.type === "Producción" ? Number(despalillo) : 0,
+      employee.type === "Producción" ? Number(escogida) : 0,
+      employee.type === "Producción" ? Number(monado) : 0,
+      record.id
+    ]);
+
 
     res.json({
       success: true,
