@@ -14,10 +14,10 @@ router.delete(
 
       // Eliminar registros
       await runQuery('DELETE FROM attendance');
-      await runQuery('DELETE FROM employees');
+      //await runQuery('DELETE FROM employees');
 
       // Reiniciar autoincrementos (PostgreSQL)
-      await runQuery('ALTER SEQUENCE employees_id_seq RESTART WITH 1');
+      //await runQuery('ALTER SEQUENCE employees_id_seq RESTART WITH 1');
       await runQuery('ALTER SEQUENCE attendance_id_seq RESTART WITH 1');
 
       res.json({
