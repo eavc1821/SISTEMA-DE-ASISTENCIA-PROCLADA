@@ -219,11 +219,11 @@ router.get('/:id/stats', async (req, res) => {
           SUM(monado) monado
         FROM attendance
         WHERE employee_id = $1
-        AND EXTRACT(YEAR FROM date) = $2
-        AND EXTRACT(MONTH FROM date) = $3
+        AND date >= date_trunc('week', CURRENT_DATE)
+        AND date < date_trunc('week', CURRENT_DATE) + INTERVAL '7 days'
         AND exit_time IS NOT NULL
         `,
-        [employeeId, year, month]
+        [employeeId]
       );
 
       const total_despalillo = Number(stats.despalillo) * 80;
@@ -259,18 +259,19 @@ router.get('/:id/stats', async (req, res) => {
 
     // AL DÍA
     const stats = await getQuery(
-      `
-      SELECT 
-        COUNT(*) days_worked,
-        SUM(hours_extra) hours_extra
-      FROM attendance
-      WHERE employee_id = $1
-      AND date >= date_trunc('week', CURRENT_DATE)
-      AND date < date_trunc('week', CURRENT_DATE) + INTERVAL '7 days'
-      AND exit_time IS NOT NULL
-      `,
-      [employeeId, year, month]
-    );
+        `
+        SELECT 
+          COUNT(*) days_worked,
+          SUM(hours_extra) hours_extra
+        FROM attendance
+        WHERE employee_id = $1
+        AND date >= date_trunc('week', CURRENT_DATE)
+        AND date < date_trunc('week', CURRENT_DATE) + INTERVAL '7 days'
+        AND exit_time IS NOT NULL
+        `,
+        [employeeId]   // ✔ SOLO UN PARÁMETRO
+      );
+
 
     const dias = Number(stats.days_worked);
     const hours = Number(stats.hours_extra);

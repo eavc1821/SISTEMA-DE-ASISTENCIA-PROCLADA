@@ -210,42 +210,30 @@ router.get('/today', authenticateToken, async (req, res) => {
   try {
     const today = getLocalDate();
 
-    const records = await allQuery(
-      `
-      SELECT 
-        a.id,
-        a.employee_id,
-        a.entry_time,
-        a.exit_time,
-        a.date,
-        a.hours_extra,
-
-        -- Producción diaria
-        a.despalillo,
-        a.escogida,
-        a.monado,
-
-        -- Totales monetarios (no existen en DB)
-        0 AS t_despalillo,
-        0 AS t_escogida,
-        0 AS t_monado,
-
-        --a.septimo_dia,
-        --a.prop_sabado,
-
-        e.name AS employee_name,
-        e.dni AS employee_dni,
-        e.type AS employee_type,
-        e.photo
-
-      FROM attendance a
-      JOIN employees e ON a.employee_id = e.id
-      WHERE a.date >= date_trunc('week', CURRENT_DATE)
-      AND a.date < date_trunc('week', CURRENT_DATE) + INTERVAL '7 days'
-      ORDER BY a.entry_time DESC
-    `,
-      [today]
-    );
+    const records = await allQuery(`
+  SELECT 
+    a.id,
+    a.employee_id,
+    a.entry_time,
+    a.exit_time,
+    a.date,
+    a.hours_extra,
+    a.despalillo,
+    a.escogida,
+    a.monado,
+    0 AS t_despalillo,
+    0 AS t_escogida,
+    0 AS t_monado,
+    e.name AS employee_name,
+    e.dni AS employee_dni,
+    e.type AS employee_type,
+    e.photo
+  FROM attendance a
+  JOIN employees e ON a.employee_id = e.id
+  WHERE a.date >= date_trunc('week', CURRENT_DATE)
+    AND a.date < date_trunc('week', CURRENT_DATE) + INTERVAL '7 days'
+  ORDER BY a.entry_time DESC
+`);
 
     const processed = (records || []).map(r => {
       const typeNorm = (r.employee_type || "").trim().toLowerCase();
