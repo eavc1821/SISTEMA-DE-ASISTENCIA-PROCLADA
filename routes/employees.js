@@ -265,8 +265,8 @@ router.get('/:id/stats', async (req, res) => {
         SUM(hours_extra) hours_extra
       FROM attendance
       WHERE employee_id = $1
-      AND EXTRACT(YEAR FROM date) = $2
-      AND EXTRACT(MONTH FROM date) = $3
+      AND date >= date_trunc('week', CURRENT_DATE)
+      AND date < date_trunc('week', CURRENT_DATE) + INTERVAL '7 days'
       AND exit_time IS NOT NULL
       `,
       [employeeId, year, month]

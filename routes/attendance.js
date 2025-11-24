@@ -240,7 +240,8 @@ router.get('/today', authenticateToken, async (req, res) => {
 
       FROM attendance a
       JOIN employees e ON a.employee_id = e.id
-      WHERE a.date = $1
+      WHERE a.date >= date_trunc('week', CURRENT_DATE)
+      AND a.date < date_trunc('week', CURRENT_DATE) + INTERVAL '7 days'
       ORDER BY a.entry_time DESC
     `,
       [today]
