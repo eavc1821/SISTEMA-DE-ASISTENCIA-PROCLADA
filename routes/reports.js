@@ -148,15 +148,16 @@ router.get('/weekly', authenticateToken, async (req, res) => {
           dni: emp.dni,
           type: "Producción",
 
-          total_despalillo: emp.total_despalillo,
-          total_escogida: emp.total_escogida,
-          total_monado: emp.total_monado,
+          despalillo: emp.total_despalillo,
+          escogida: emp.total_escogida,
+          monado: emp.total_monado,
 
           production_money: totalProd,
           saturday_bonus: saturdayBonus,
           seventh_day: seventhDay,
           net_pay: netPay
         });
+
 
       } else {
         const dailySalary = emp.monthly_salary / 30;
