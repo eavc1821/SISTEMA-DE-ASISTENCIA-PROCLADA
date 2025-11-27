@@ -26,30 +26,29 @@ router.get('/weekly', authenticateToken, async (req, res) => {
 
     // 1. Obtener datos básicos (CORREGIDO: ya no depende de exit_time)
     const rows = await allQuery(`
-      SELECT 
-        a.employee_id,
-        e.name AS employee,
-        e.dni,
-        e.type AS employee_type,
-        e.monthly_salary,
-        a.date,
-
-        COALESCE(a.despalillo, 0) AS despalillo,
-        COALESCE(a.escogida, 0) AS escogida,
-        COALESCE(a.monado, 0) AS monado,
-        COALESCE(a.hours_extra, 0) AS hours_extra
-
-      FROM attendance a
-      JOIN employees e ON a.employee_id = e.id
-      AND (
-        e.type <> 'Producción'
-        OR COALESCE(a.despalillo,0) > 0
-        OR COALESCE(a.escogida,0) > 0
-        OR COALESCE(a.monado,0) > 0
-        OR COALESCE(a.hours_extra,0) > 0
-      )
-      ORDER BY e.name ASC
-    `, [start_date, end_date]);
+        SELECT 
+    a.employee_id,
+    e.name AS employee,
+    e.dni,
+    e.type AS employee_type,
+    e.monthly_salary,
+    a.date,
+    COALESCE(a.despalillo, 0) AS despalillo,
+    COALESCE(a.escogida, 0) AS escogida,
+    COALESCE(a.monado, 0) AS monado,
+    COALESCE(a.hours_extra, 0) AS hours_extra
+  FROM attendance a
+  JOIN employees e ON a.employee_id = e.id
+  WHERE a.date BETWEEN $1 AND $2
+    AND (
+          LOWER(e.type) <> 'producción'
+          OR COALESCE(a.despalillo,0) > 0
+          OR COALESCE(a.escogida,0) > 0
+          OR COALESCE(a.monado,0) > 0
+          OR COALESCE(a.hours_extra,0) > 0
+        )
+  ORDER BY e.name ASC
+`, [start_date, end_date]);
 
 
     // ---- ACUMULACIÓN ----
