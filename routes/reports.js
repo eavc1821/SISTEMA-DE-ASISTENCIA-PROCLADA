@@ -24,9 +24,8 @@ router.get('/weekly', authenticateToken, async (req, res) => {
       });
     }
 
-    // 1. Obtener datos de empleados + asistencia semanal
-    const rows = await allQuery(
-      `
+    // 1. Obtener datos básicos
+    const rows = await allQuery(`
       SELECT 
         a.employee_id,
         e.name AS employee,
@@ -34,25 +33,19 @@ router.get('/weekly', authenticateToken, async (req, res) => {
         e.type AS employee_type,
         e.monthly_salary,
         a.date,
-
-        -- Producción
         COALESCE(a.despalillo, 0) AS despalillo,
         COALESCE(a.escogida, 0) AS escogida,
         COALESCE(a.monado, 0) AS monado,
-
-        -- Al Día
         COALESCE(a.hours_extra, 0) AS hours_extra
-
       FROM attendance a
       JOIN employees e ON a.employee_id = e.id
       WHERE a.date BETWEEN $1 AND $2
         AND a.exit_time IS NOT NULL
       ORDER BY e.name ASC
-      `,
-      [start_date, end_date]
-    );
+    `, [start_date, end_date]);
 
-    // Acumuladores por empleado
+
+    // ---- ACUMULACIÓN ----
     const employees = {};
 
     for (const row of rows) {
@@ -65,13 +58,9 @@ router.get('/weekly', authenticateToken, async (req, res) => {
           dni: row.dni,
           employee_type: row.employee_type,
           monthly_salary: row.monthly_salary,
-
-          // Producción
           total_despalillo: 0,
           total_escogida: 0,
           total_monado: 0,
-
-          // Al Día
           days_worked: 0,
           hours_extra: 0
         };
@@ -88,13 +77,13 @@ router.get('/weekly', authenticateToken, async (req, res) => {
       }
     }
 
+
+    // ---- PROCESAMIENTO FINAL ----
     const productionEmployees = [];
     const alDiaEmployees = [];
 
-    // Procesar cálculos finales
     for (const emp of Object.values(employees)) {
       if (emp.employee_type === "Producción") {
-
         const TDes = emp.total_despalillo * 80;
         const TEsc = emp.total_escogida * 70;
         const TMon = emp.total_monado   * 1;
@@ -111,52 +100,46 @@ router.get('/weekly', authenticateToken, async (req, res) => {
           employee: emp.employee,
           dni: emp.dni,
           type: "Producción",
-
           total_despalillo: emp.total_despalillo,
           total_escogida: emp.total_escogida,
           total_monado: emp.total_monado,
-
           production_money: totalProd,
           saturday_bonus: saturdayBonus,
           seventh_day: seventhDay,
-
           net_pay: netPay
         });
 
       } else {
 
-          const dailySalary = emp.monthly_salary / 30;
-          const hourValue = dailySalary / 8;
-          const overtimeValue = hourValue + hourValue * 0.25;
+        const dailySalary = emp.monthly_salary / 30;
+        const hourValue = dailySalary / 8;
+        const overtimeValue = hourValue + hourValue * 0.25;
 
-          const hoursMoney = Number((emp.hours_extra * overtimeValue).toFixed(2));
+        const hoursMoney = Number((emp.hours_extra * overtimeValue).toFixed(2));
 
-          // 7mo día solo si tiene 5 o más días trabajados
-          const seventh = emp.days_worked >= 5 ? dailySalary : 0;
+        const seventh = emp.days_worked >= 5 ? dailySalary : 0;
 
-          // NETO OFICIAL PARA EMPLEADOS AL DÍA
-          const netPay = Number(
-            (emp.days_worked * dailySalary + hoursMoney + seventh).toFixed(2)
-          );
+        const netPay = Number(
+          (emp.days_worked * dailySalary + hoursMoney + seventh).toFixed(2)
+        );
 
-          alDiaEmployees.push({
-            employee_id: emp.employee_id,
-            employee: emp.employee,
-            dni: emp.dni,
-            type: "Al Día",
-
-            daily_salary: Number(dailySalary.toFixed(2)),
-            days_worked: emp.days_worked,
-            hours_extra: emp.hours_extra,
-            hours_extra_money: hoursMoney,
-            seventh_day: Number(seventh.toFixed(2)),
-
-            net_pay: netPay
-          });
-        }
+        alDiaEmployees.push({
+          employee_id: emp.employee_id,
+          employee: emp.employee,
+          dni: emp.dni,
+          type: "Al Día",
+          daily_salary: Number(dailySalary.toFixed(2)),
+          days_worked: emp.days_worked,
+          hours_extra: emp.hours_extra,
+          hours_extra_money: hoursMoney,
+          seventh_day: Number(seventh.toFixed(2)),
+          net_pay: netPay
+        });
+      }
     }
 
-    // RESUMEN
+
+    // ---- RESUMEN ----
     const summary = {
       total_employees: productionEmployees.length + alDiaEmployees.length,
       total_production_employees: productionEmployees.length,
@@ -168,28 +151,33 @@ router.get('/weekly', authenticateToken, async (req, res) => {
     summary.total_payroll =
       summary.total_production_payroll + summary.total_aldia_payroll;
 
-      // Trend por dia (asistencia diaria)
-      const trend = await allQuery(`
-        SELECT 
-          date,
-          COUNT(*) AS present_count
-        FROM attendance
-        WHERE date BETWEEN $1 AND $2
-        GROUP BY date
-        ORDER BY date ASC
-      `, [start_date, end_date]);
 
-      data.summaryByDay = trend;
+    // ---- NUEVO: TENDENCIA POR DÍA ----
+    const trend = await allQuery(`
+      SELECT 
+        date,
+        COUNT(*) AS present_count
+      FROM attendance
+      WHERE date BETWEEN $1 AND $2
+      GROUP BY date
+      ORDER BY date ASC
+    `, [start_date, end_date]);
+
+
+    // 🔥 Construimos el objeto FINAL aquí (antes no existía)
+    const resultData = {
+      production: productionEmployees,
+      alDia: alDiaEmployees,
+      summary,
+      summaryByDay: trend   
+    };
 
 
     return res.json({
       success: true,
-      data: {
-        production: productionEmployees,
-        alDia: alDiaEmployees,
-        summary
-      }
+      data: resultData
     });
+
 
   } catch (error) {
     console.error("❌ Error en weekly:", error);
