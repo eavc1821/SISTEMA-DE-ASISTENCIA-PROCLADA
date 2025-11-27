@@ -42,13 +42,14 @@ router.get('/weekly', authenticateToken, async (req, res) => {
     const productionTotals = await allQuery(
       `
       SELECT
-        SUM(COALESCE(a.despalillo, 0)) AS total_despalillo,
-        SUM(COALESCE(a.escogida, 0)) AS total_escogida,
-        SUM(COALESCE(a.monado, 0)) AS total_monado
+        COALESCE(SUM(a.despalillo), 0) AS total_despalillo,
+        COALESCE(SUM(a.escogida), 0) AS total_escogida,
+        COALESCE(SUM(a.monado), 0) AS total_monado
       FROM attendance a
       JOIN employees e ON a.employee_id = e.id
       WHERE a.date BETWEEN $1 AND $2
         AND e.type = 'Producción'
+
       `,
       [start_date, end_date]
     );
