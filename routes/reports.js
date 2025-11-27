@@ -168,6 +168,20 @@ router.get('/weekly', authenticateToken, async (req, res) => {
     summary.total_payroll =
       summary.total_production_payroll + summary.total_aldia_payroll;
 
+      // Trend por dia (asistencia diaria)
+      const trend = await allQuery(`
+        SELECT 
+          date,
+          COUNT(*) AS present_count
+        FROM attendance
+        WHERE date BETWEEN $1 AND $2
+        GROUP BY date
+        ORDER BY date ASC
+      `, [start_date, end_date]);
+
+      data.summaryByDay = trend;
+
+
     return res.json({
       success: true,
       data: {

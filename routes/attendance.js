@@ -208,32 +208,29 @@ router.post('/exit', authenticateToken, requireAdminOrScanner, async (req, res) 
 ================================================================ */
 router.get('/today', authenticateToken, async (req, res) => {
   try {
-    const today = getLocalDate();
-
     const records = await allQuery(`
-  SELECT 
-    a.id,
-    a.employee_id,
-    a.entry_time,
-    a.exit_time,
-    a.date,
-    a.hours_extra,
-    a.despalillo,
-    a.escogida,
-    a.monado,
-    0 AS t_despalillo,
-    0 AS t_escogida,
-    0 AS t_monado,
-    e.name AS employee_name,
-    e.dni AS employee_dni,
-    e.type AS employee_type,
-    e.photo
-  FROM attendance a
-  JOIN employees e ON a.employee_id = e.id
-  WHERE a.date >= date_trunc('week', CURRENT_DATE)
-    AND a.date < date_trunc('week', CURRENT_DATE) + INTERVAL '7 days'
-  ORDER BY a.entry_time DESC
-`);
+      SELECT 
+        a.id,
+        a.employee_id,
+        a.entry_time,
+        a.exit_time,
+        a.date,
+        a.hours_extra,
+        a.despalillo,
+        a.escogida,
+        a.monado,
+        0 AS t_despalillo,
+        0 AS t_escogida,
+        0 AS t_monado,
+        e.name AS employee_name,
+        e.dni AS employee_dni,
+        e.type AS employee_type,
+        e.photo
+      FROM attendance a
+      JOIN employees e ON a.employee_id = e.id
+      WHERE a.date = CURRENT_DATE
+      ORDER BY a.entry_time DESC
+    `);
 
     const processed = (records || []).map(r => {
       const typeNorm = (r.employee_type || "").trim().toLowerCase();
@@ -245,38 +242,25 @@ router.get('/today', authenticateToken, async (req, res) => {
         employee_dni: r.employee_dni,
         employee_type: typeNorm,
         photo: r.photo,
-
-        // Horas
         entry_time: r.entry_time,
         exit_time: r.exit_time,
         entry_time_display: r.entry_time 
-        ? new Date(r.entry_time).toLocaleTimeString("es-HN", { hour: "2-digit", minute: "2-digit", hour12: false })
-        : '-',
-
-      exit_time_display: r.exit_time
-        ? new Date(r.exit_time).toLocaleTimeString("es-HN", { hour: "2-digit", minute: "2-digit", hour12: false })
-        : '-',
+          ? new Date(r.entry_time).toLocaleTimeString("es-HN", { hour: "2-digit", minute: "2-digit", hour12: false })
+          : '-',
+        exit_time_display: r.exit_time
+          ? new Date(r.exit_time).toLocaleTimeString("es-HN", { hour: "2-digit", minute: "2-digit", hour12: false })
+          : '-',
         date: r.date,
-
-        // Work state
         is_working: r.exit_time === null,
         status: r.exit_time === null ? "active" : "completed",
         status_text: r.exit_time === null ? "En Trabajo" : "Completado",
-
-        // Raw values
         hours_extra: Number(r.hours_extra) || 0,
-
-        // Producción diaria
         despalillo: Number(r.despalillo) || 0,
         escogida: Number(r.escogida) || 0,
         monado: Number(r.monado) || 0,
-
-        // Totales monetarios
         total_despalillo: Number(r.t_despalillo) || 0,
         total_escogida: Number(r.t_escogida) || 0,
         total_monado: Number(r.t_monado) || 0,
-
-        // Bonos
         saturday_bonus: Number(r.prop_sabado) || 0,
         seventh_day: Number(r.septimo_dia) || 0
       };
@@ -289,13 +273,14 @@ router.get('/today', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error obteniendo registros:', error);
+    console.error('❌ Error obteniendo registros de hoy:', error);
     res.status(500).json({
       success: false,
       error: 'Error al obtener registros de hoy'
     });
   }
 });
+
 
 
 
