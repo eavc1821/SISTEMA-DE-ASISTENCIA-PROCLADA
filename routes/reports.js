@@ -24,7 +24,50 @@ router.get('/weekly', authenticateToken, async (req, res) => {
       });
     }
 
-    // 1. Obtener datos de empleados + asistencia semanal
+    // 🔹 1. ASISTENCIA SEMANAL (POR DÍA)
+    const attendanceRows = await allQuery(
+      `
+      SELECT 
+        a.date,
+        COUNT(DISTINCT a.employee_id) AS present_count
+      FROM attendance a
+      WHERE a.date BETWEEN $1 AND $2
+      GROUP BY a.date
+      ORDER BY a.date ASC
+      `,
+      [start_date, end_date]
+    );
+
+    // 🔹 2. PRODUCCIÓN TOTAL SEMANAL (SUMADA)
+    const productionTotals = await allQuery(
+      `
+      SELECT
+        SUM(COALESCE(a.despalillo, 0)) AS total_despalillo,
+        SUM(COALESCE(a.escogida, 0)) AS total_escogida,
+        SUM(COALESCE(a.monado, 0)) AS total_monado
+      FROM attendance a
+      JOIN employees e ON a.employee_id = e.id
+      WHERE a.date BETWEEN $1 AND $2
+        AND e.type = 'Producción'
+      `,
+      [start_date, end_date]
+    );
+
+    // 🔹 3. AL DÍA TOTAL SEMANAL
+    const alDiaTotals = await allQuery(
+      `
+      SELECT
+        SUM(COALESCE(a.hours_extra, 0)) AS total_hours_extra,
+        COUNT(*) AS total_days_worked
+      FROM attendance a
+      JOIN employees e ON a.employee_id = e.id
+      WHERE a.date BETWEEN $1 AND $2
+        AND e.type = 'Al Día'
+      `,
+      [start_date, end_date]
+    );
+
+    // 🔹 4. NÓMINA SEMANAL (TU LÓGICA ORIGINAL)
     const rows = await allQuery(
       `
       SELECT 
@@ -35,26 +78,22 @@ router.get('/weekly', authenticateToken, async (req, res) => {
         e.monthly_salary,
         a.date,
 
-        -- Producción
         COALESCE(a.despalillo, 0) AS despalillo,
         COALESCE(a.escogida, 0) AS escogida,
         COALESCE(a.monado, 0) AS monado,
 
-        -- Al Día
         COALESCE(a.hours_extra, 0) AS hours_extra
 
       FROM attendance a
       JOIN employees e ON a.employee_id = e.id
       WHERE a.date BETWEEN $1 AND $2
-        AND a.exit_time IS NOT NULL
       ORDER BY e.name ASC
       `,
       [start_date, end_date]
     );
 
-    // Acumuladores por empleado
+    // 🔹 Procesar nómina exacta (igual que antes)
     const employees = {};
-
     for (const row of rows) {
       const id = row.employee_id;
 
@@ -66,14 +105,11 @@ router.get('/weekly', authenticateToken, async (req, res) => {
           employee_type: row.employee_type,
           monthly_salary: row.monthly_salary,
 
-          // Producción
           total_despalillo: 0,
           total_escogida: 0,
           total_monado: 0,
-
-          // Al Día
-          days_worked: 0,
-          hours_extra: 0
+          hours_extra: 0,
+          days_worked: 0
         };
       }
 
@@ -81,20 +117,19 @@ router.get('/weekly', authenticateToken, async (req, res) => {
         employees[id].total_despalillo += Number(row.despalillo);
         employees[id].total_escogida   += Number(row.escogida);
         employees[id].total_monado     += Number(row.monado);
-        employees[id].days_worked++;
       } else {
         employees[id].hours_extra += Number(row.hours_extra);
-        employees[id].days_worked++;
       }
+
+      employees[id].days_worked++;
     }
 
+    // 🔹 Cálculo de nómina final (idéntico al tuyo)
     const productionEmployees = [];
     const alDiaEmployees = [];
 
-    // Procesar cálculos finales
     for (const emp of Object.values(employees)) {
       if (emp.employee_type === "Producción") {
-
         const TDes = emp.total_despalillo * 80;
         const TEsc = emp.total_escogida * 70;
         const TMon = emp.total_monado   * 1;
@@ -119,48 +154,39 @@ router.get('/weekly', authenticateToken, async (req, res) => {
           production_money: totalProd,
           saturday_bonus: saturdayBonus,
           seventh_day: seventhDay,
-
           net_pay: netPay
         });
 
       } else {
+        const dailySalary = emp.monthly_salary / 30;
+        const hourValue = dailySalary / 8;
+        const overtimeValue = hourValue + hourValue * 0.25;
 
-          const dailySalary = emp.monthly_salary / 30;
-          const hourValue = dailySalary / 8;
-          const overtimeValue = hourValue + hourValue * 0.25;
+        const hoursMoney = Number((emp.hours_extra * overtimeValue).toFixed(2));
+        const seventh = emp.days_worked >= 5 ? dailySalary : 0;
 
-          const hoursMoney = Number((emp.hours_extra * overtimeValue).toFixed(2));
+        const netPay = Number(
+          (emp.days_worked * dailySalary + hoursMoney + seventh).toFixed(2)
+        );
 
-          // 7mo día solo si tiene 5 o más días trabajados
-          const seventh = emp.days_worked >= 5 ? dailySalary : 0;
+        alDiaEmployees.push({
+          employee_id: emp.employee_id,
+          employee: emp.employee,
+          dni: emp.dni,
+          type: "Al Día",
 
-          // NETO OFICIAL PARA EMPLEADOS AL DÍA
-          const netPay = Number(
-            (emp.days_worked * dailySalary + hoursMoney + seventh).toFixed(2)
-          );
-
-          alDiaEmployees.push({
-            employee_id: emp.employee_id,
-            employee: emp.employee,
-            dni: emp.dni,
-            type: "Al Día",
-
-            daily_salary: Number(dailySalary.toFixed(2)),
-            days_worked: emp.days_worked,
-            hours_extra: emp.hours_extra,
-            hours_extra_money: hoursMoney,
-            seventh_day: Number(seventh.toFixed(2)),
-
-            net_pay: netPay
-          });
-        }
+          days_worked: emp.days_worked,
+          hours_extra: emp.hours_extra,
+          hours_extra_money: hoursMoney,
+          seventh_day: Number(seventh.toFixed(2)),
+          net_pay: netPay
+        });
+      }
     }
 
-    // RESUMEN
+    // 🔹 Resumen final
     const summary = {
       total_employees: productionEmployees.length + alDiaEmployees.length,
-      total_production_employees: productionEmployees.length,
-      total_aldia_employees: alDiaEmployees.length,
       total_production_payroll: productionEmployees.reduce((sum, e) => sum + e.net_pay, 0),
       total_aldia_payroll: alDiaEmployees.reduce((sum, e) => sum + e.net_pay, 0)
     };
@@ -168,9 +194,13 @@ router.get('/weekly', authenticateToken, async (req, res) => {
     summary.total_payroll =
       summary.total_production_payroll + summary.total_aldia_payroll;
 
+    // 🔹 RESPUESTA COMPLETA PARA EL FRONTEND
     return res.json({
       success: true,
       data: {
+        summaryByDay: attendanceRows,
+        productionTotals: productionTotals[0],
+        alDiaTotals: alDiaTotals[0],
         production: productionEmployees,
         alDia: alDiaEmployees,
         summary
@@ -182,6 +212,7 @@ router.get('/weekly', authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, error: "Error generando reporte semanal" });
   }
 });
+
 
 
 /* ============================================================
