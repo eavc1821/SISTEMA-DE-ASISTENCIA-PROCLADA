@@ -41,13 +41,13 @@ router.get('/weekly', authenticateToken, async (req, res) => {
 
       FROM attendance a
       JOIN employees e ON a.employee_id = e.id
-      WHERE a.date BETWEEN $1 AND $2
-        AND (
-              COALESCE(a.despalillo,0) > 0 OR 
-              COALESCE(a.escogida,0) > 0 OR 
-              COALESCE(a.monado,0) > 0 OR
-              COALESCE(a.hours_extra,0) > 0
-            )
+      AND (
+        e.type <> 'Producción'
+        OR COALESCE(a.despalillo,0) > 0
+        OR COALESCE(a.escogida,0) > 0
+        OR COALESCE(a.monado,0) > 0
+        OR COALESCE(a.hours_extra,0) > 0
+      )
       ORDER BY e.name ASC
     `, [start_date, end_date]);
 
