@@ -181,6 +181,7 @@ router.get('/weekly', authenticateToken, async (req, res) => {
           hours_extra: emp.hours_extra,
           hours_extra_money: hoursMoney,
           seventh_day: Number(seventh.toFixed(2)),
+           daily_salary: Number(dailySalary.toFixed(2)), 
           net_pay: netPay
         });
       }
