@@ -258,4 +258,76 @@ router.get("/daily", authenticateToken, requireSuperAdmin, async (req, res) => {
   }
 });
 
+/* ============================================================
+   📌 DAILY REPORT FOR DASHBOARD (NO-PDF)
+============================================================ */
+router.get("/dashboard-daily", authenticateToken, async (req, res) => {
+  try {
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        error: "date is required: YYYY-MM-DD"
+      });
+    }
+
+    // 🔹 Empleados con registros hoy
+    const attendance = await allQuery(
+      `
+      SELECT 
+        a.employee_id,
+        e.name AS employee,
+        e.type AS employee_type,
+        COALESCE(a.despalillo, 0) AS despalillo,
+        COALESCE(a.escogida, 0) AS escogida,
+        COALESCE(a.monado, 0) AS monado,
+        COALESCE(a.hours_extra, 0) AS hours_extra,
+        a.entry_time,
+        a.exit_time
+      FROM attendance a
+      JOIN employees e ON e.id = a.employee_id
+      WHERE a.date = $1
+      ORDER BY e.name ASC
+      `,
+      [date]
+    );
+
+    // 🔹 Pendientes
+    const employeesAll = await allQuery(`SELECT id, name, type FROM employees ORDER BY name ASC`);
+    
+    const presentToday = attendance.map(a => a.employee_id);
+    
+    const pendingEntry = employeesAll.filter(e => !presentToday.includes(e.id));
+
+    const pendingExit = attendance.filter(a => !a.exit_time);
+
+    // 🔹 Totales de producción diaria
+    const prodTotals = {
+      despalillo: attendance.reduce((s, r) => s + Number(r.despalillo || 0), 0),
+      escogida:   attendance.reduce((s, r) => s + Number(r.escogida || 0), 0),
+      monado:     attendance.reduce((s, r) => s + Number(r.monado || 0), 0),
+    };
+
+    // 🔹 Horas extra totales
+    const extraTotals = attendance.reduce((s, r) => s + Number(r.hours_extra || 0), 0);
+
+    return res.json({
+      success: true,
+      data: {
+        attendance,
+        prodTotals,
+        extraTotals,
+        pendingEntry,
+        pendingExit
+      }
+    });
+
+  } catch (err) {
+    console.error("❌ Daily Dashboard Error:", err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+
 module.exports = router;
