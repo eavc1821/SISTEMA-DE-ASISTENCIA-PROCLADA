@@ -210,7 +210,8 @@ router.get('/today', authenticateToken, async (req, res) => {
   try {
     const today = getLocalDate();
 
-    const records = await allQuery(`
+    const records = await allQuery(
+  `
   SELECT 
     a.id,
     a.employee_id,
@@ -230,10 +231,11 @@ router.get('/today', authenticateToken, async (req, res) => {
     e.photo
   FROM attendance a
   JOIN employees e ON a.employee_id = e.id
-  WHERE a.date >= date_trunc('week', CURRENT_DATE)
-    AND a.date < date_trunc('week', CURRENT_DATE) + INTERVAL '7 days'
+  WHERE a.date = $1
   ORDER BY a.entry_time DESC
-`);
+  `,
+  [today]
+);
 
     const processed = (records || []).map(r => {
       const typeNorm = (r.employee_type || "").trim().toLowerCase();
