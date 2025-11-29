@@ -342,7 +342,7 @@ router.get("/dashboard-daily", authenticateToken, async (req, res) => {
     return res.json({
       success: true,
       data: {
-        attendanceNormalized,
+        attendance: attendanceNormalized,
         prodTotals,
         extraTotals,
         pendingEntry,
