@@ -9,8 +9,20 @@ const { authenticateToken, requireSuperAdmin } = require("../middleware/auth");
 const N = (v) => Number(v) || 0;
 const toNum = (v) => parseFloat(v) || 0;
 const round2 = (v) => Number(Number(v || 0).toFixed(2));
-const normalizeType = (str = "") =>
-  str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+
+
+const normalizeType = (str = "") => {
+  const cleaned = str
+    .toString()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+
+  if (cleaned.includes("prod")) return "produccion";
+  if (cleaned.includes("dia")) return "aldia";
+
+  return cleaned || "aldia";
+};
 
 
 /* ============================================================
@@ -298,9 +310,9 @@ router.get("/dashboard-daily", authenticateToken, async (req, res) => {
     );
 
     const attendanceNormalized = attendance.map(a => ({
-  ...a,
-  employee_type: normalizeType(a.employee_type)
-}));
+      ...a,
+      employee_type: normalizeType(a.employee_type)
+    }));
 
 
     // 🔹 Pendientes
@@ -338,6 +350,10 @@ router.get("/dashboard-daily", authenticateToken, async (req, res) => {
 
     // 🔹 Horas extra totales
     const extraTotals = attendance.reduce((s, r) => s + Number(r.hours_extra || 0), 0);
+
+    console.log("🔥 attendanceNormalized:", attendanceNormalized);
+    console.log("🔥 pendingEntry:", pendingEntry);
+    console.log("🔥 pendingExit:", pendingExit);
 
     return res.json({
       success: true,
