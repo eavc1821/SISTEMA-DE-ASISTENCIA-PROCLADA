@@ -299,9 +299,26 @@ router.get("/dashboard-daily", authenticateToken, async (req, res) => {
     
     const presentToday = attendance.map(a => a.employee_id);
     
-    const pendingEntry = employeesAll.filter(e => !presentToday.includes(e.id));
+    // Normalizar pendientes de entrada
+    const pendingEntry = employeesAll
+      .filter(e => !presentToday.includes(e.id))
+      .map(e => ({
+        employee_id: e.id,
+        employee_name: e.name,
+        employee_type: e.type,
+        photo: e.photo || null
+      }));
 
-    const pendingExit = attendance.filter(a => !a.exit_time);
+    // Normalizar pendientes de salida
+    const pendingExit = attendance
+      .filter(a => !a.exit_time)
+      .map(a => ({
+        employee_id: a.employee_id,
+        employee_name: a.employee,
+        employee_type: a.employee_type,
+        entry_time: a.entry_time,
+        photo: a.photo || null
+      }));
 
     // 🔹 Totales de producción diaria
     const prodTotals = {
