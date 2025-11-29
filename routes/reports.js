@@ -352,9 +352,6 @@ router.get("/dashboard-daily", authenticateToken, async (req, res) => {
     // 🔹 Horas extra totales
     const extraTotals = attendance.reduce((s, r) => s + Number(r.hours_extra || 0), 0);
 
-    console.log("🔥 attendanceNormalized:", attendanceNormalized);
-    console.log("🔥 pendingEntry:", pendingEntry);
-    console.log("🔥 pendingExit:", pendingExit);
 
     return res.json({
       success: true,
