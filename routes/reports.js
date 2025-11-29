@@ -43,13 +43,12 @@ router.get('/weekly', authenticateToken, async (req, res) => {
     const attendanceRows = await allQuery(
       `
       SELECT 
-        DATE(a.date) AS date,
+        TO_CHAR(a.date, 'YYYY-MM-DD') AS date,
         COUNT(DISTINCT a.employee_id) AS present_count
       FROM attendance a
       WHERE a.date BETWEEN $1 AND $2
-      GROUP BY DATE(a.date)
-      ORDER BY DATE(a.date) ASC
-
+      GROUP BY TO_CHAR(a.date, 'YYYY-MM-DD')
+      ORDER BY TO_CHAR(a.date, 'YYYY-MM-DD') ASC
       `,
       [start_date, end_date]
     );
