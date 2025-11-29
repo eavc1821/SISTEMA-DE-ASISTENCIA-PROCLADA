@@ -9,6 +9,9 @@ const { authenticateToken, requireSuperAdmin } = require("../middleware/auth");
 const N = (v) => Number(v) || 0;
 const toNum = (v) => parseFloat(v) || 0;
 const round2 = (v) => Number(Number(v || 0).toFixed(2));
+const normalizeType = (str = "") =>
+  str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+
 
 /* ============================================================
    📌 WEEKLY REPORT — SUPER ADMIN ONLY
@@ -294,10 +297,16 @@ router.get("/dashboard-daily", authenticateToken, async (req, res) => {
       [date]
     );
 
+    const attendanceNormalized = attendance.map(a => ({
+  ...a,
+  employee_type: normalizeType(a.employee_type)
+}));
+
+
     // 🔹 Pendientes
     const employeesAll = await allQuery(`SELECT id, name, type FROM employees ORDER BY name ASC`);
     
-    const presentToday = attendance.map(a => a.employee_id);
+    const presentToday = attendanceNormalized.map(a => a.employee_id);
     
     // Normalizar pendientes de entrada
     const pendingEntry = employeesAll
@@ -305,17 +314,17 @@ router.get("/dashboard-daily", authenticateToken, async (req, res) => {
       .map(e => ({
         employee_id: e.id,
         employee_name: e.name,
-        employee_type: e.type,
+        employee_type: normalizeType(e.type), // ← AQUÍ
         photo: e.photo || null
       }));
 
     // Normalizar pendientes de salida
-    const pendingExit = attendance
+    const pendingExit = attendanceNormalized
       .filter(a => !a.exit_time)
       .map(a => ({
         employee_id: a.employee_id,
         employee_name: a.employee,
-        employee_type: a.employee_type,
+        employee_type: normalizeType(a.employee_type), // ← AQUÍ
         entry_time: a.entry_time,
         photo: a.photo || null
       }));
@@ -333,7 +342,7 @@ router.get("/dashboard-daily", authenticateToken, async (req, res) => {
     return res.json({
       success: true,
       data: {
-        attendance,
+        attendanceNormalized,
         prodTotals,
         extraTotals,
         pendingEntry,
