@@ -180,7 +180,7 @@ router.get('/weekly', authenticateToken, async (req, res) => {
         const overtimeValue = hourValue + hourValue * 0.25;
 
         const hoursMoney = Number((emp.hours_extra * overtimeValue).toFixed(2));
-        const seventh = emp.days_worked >= 5 ? dailySalary : 0;
+        const seventh = emp.days_worked >= 6 ? dailySalary : 0;
 
         const netPay = Number(
           (emp.days_worked * dailySalary + hoursMoney + seventh).toFixed(2)
