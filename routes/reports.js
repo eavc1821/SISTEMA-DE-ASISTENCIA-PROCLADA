@@ -202,6 +202,15 @@ router.get('/weekly', authenticateToken, async (req, res) => {
       }
     }
 
+    //orden alfabetico
+    productionEmployees.sort((a, b) =>
+        a.employee.localeCompare(b.employee, 'es', { sensitivity: 'base' })
+      );
+
+      alDiaEmployees.sort((a, b) =>
+        a.employee.localeCompare(b.employee, 'es', { sensitivity: 'base' })
+      );
+
     // 🔹 Resumen final
     const summary = {
       total_employees: productionEmployees.length + alDiaEmployees.length,
