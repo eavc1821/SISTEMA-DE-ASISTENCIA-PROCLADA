@@ -139,7 +139,7 @@ const normalize = (str) =>
 
 router.post('/exit', authenticateToken, requireAdminOrScanner, async (req, res) => {
   try {
-    const { employee_id, hours_extra = 0, despalillo = 0, escogida = 0, monado = 0 } = req.body;
+    const { employee_id, hours_extra = 0, despalillo = 0, escogida = 0, monado = 0, pago_dia = 0 } = req.body;
     const today = getLocalDate();
 
     if (!employee_id) {
@@ -172,8 +172,9 @@ router.post('/exit', authenticateToken, requireAdminOrScanner, async (req, res) 
           hours_extra = $2,
           despalillo = $3,
           escogida = $4,
-          monado = $5
-      WHERE id = $6
+          monado = $5,
+          pago_dia = $6
+      WHERE id = $7
     `, [
       exitTime,
         // AL DÍA (fix: normalizado)
@@ -183,6 +184,7 @@ router.post('/exit', authenticateToken, requireAdminOrScanner, async (req, res) 
       normalize(employee.type) === "produccion" ? Number(despalillo) : 0,
       normalize(employee.type) === "produccion" ? Number(escogida) : 0,
       normalize(employee.type) === "produccion" ? Number(monado) : 0,
+      normalize(employee.type) === "produccion" ? Number(pago_dia) : 0,
       record.id
     ]);
 
@@ -222,6 +224,7 @@ router.get('/today', authenticateToken, async (req, res) => {
     a.despalillo,
     a.escogida,
     a.monado,
+    a.pago_dia,
     0 AS t_despalillo,
     0 AS t_escogida,
     0 AS t_monado,
@@ -272,6 +275,7 @@ router.get('/today', authenticateToken, async (req, res) => {
         despalillo: Number(r.despalillo) || 0,
         escogida: Number(r.escogida) || 0,
         monado: Number(r.monado) || 0,
+        pago_dia: Number(r.pago_dia) || 0,
 
         // Totales monetarios
         total_despalillo: Number(r.t_despalillo) || 0,
