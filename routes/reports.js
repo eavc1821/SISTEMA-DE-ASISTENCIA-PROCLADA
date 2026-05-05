@@ -59,7 +59,8 @@ router.get('/weekly', authenticateToken, async (req, res) => {
       SELECT
         COALESCE(SUM(a.despalillo), 0) AS total_despalillo,
         COALESCE(SUM(a.escogida), 0) AS total_escogida,
-        COALESCE(SUM(a.monado), 0) AS total_monado
+        COALESCE(SUM(a.monado), 0) AS total_monado,
+        COALESCE(SUM(a.pago_dia), 0) AS total_pago_dia
       FROM attendance a
       JOIN employees e ON a.employee_id = e.id
       WHERE a.date BETWEEN $1 AND $2
@@ -97,6 +98,7 @@ router.get('/weekly', authenticateToken, async (req, res) => {
         COALESCE(a.despalillo, 0) AS despalillo,
         COALESCE(a.escogida, 0) AS escogida,
         COALESCE(a.monado, 0) AS monado,
+        COALESCE(a.pago_dia, 0) AS pago_dia,
 
         COALESCE(a.hours_extra, 0) AS hours_extra
 
@@ -124,6 +126,7 @@ router.get('/weekly', authenticateToken, async (req, res) => {
           total_despalillo: 0,
           total_escogida: 0,
           total_monado: 0,
+          total_pago_dia: 0,
           hours_extra: 0,
           days_worked: 0
         };
@@ -133,6 +136,7 @@ router.get('/weekly', authenticateToken, async (req, res) => {
         employees[id].total_despalillo += Number(row.despalillo);
         employees[id].total_escogida   += Number(row.escogida);
         employees[id].total_monado     += Number(row.monado);
+        employees[id].total_pago_dia   += Number(row.pago_dia);
       } else {
         employees[id].hours_extra += Number(row.hours_extra);
       }
@@ -149,8 +153,9 @@ router.get('/weekly', authenticateToken, async (req, res) => {
         const TDes = emp.total_despalillo * 80;
         const TEsc = emp.total_escogida * 70;
         const TMon = emp.total_monado   * 1;
+        const PDia = emp.total_pago_dia;
 
-        const totalProd = TDes + TEsc + TMon;
+        const totalProd = TDes + TEsc + TMon + PDia;
 
         const saturdayBonus = Number((totalProd * 0.090909).toFixed(2));
         const seventhDay    = Number((totalProd * 0.181818).toFixed(2));
@@ -166,6 +171,7 @@ router.get('/weekly', authenticateToken, async (req, res) => {
           despalillo: emp.total_despalillo,
           escogida: emp.total_escogida,
           monado: emp.total_monado,
+          pago_dia: PDia,
 
           production_money: totalProd,
           saturday_bonus: saturdayBonus,
