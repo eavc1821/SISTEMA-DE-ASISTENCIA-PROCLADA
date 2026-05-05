@@ -9,6 +9,7 @@ const { authenticateToken, requireSuperAdmin } = require("../middleware/auth");
 const N = (v) => Number(v) || 0;
 const toNum = (v) => parseFloat(v) || 0;
 const round2 = (v) => Number(Number(v || 0).toFixed(2));
+const HALF_DAY_BONUS_EMPLOYEE_IDS = new Set([12, 72]);
 
 
 const normalizeType = (str = "") => {
@@ -187,9 +188,13 @@ router.get('/weekly', authenticateToken, async (req, res) => {
 
         const hoursMoney = Number((emp.hours_extra * overtimeValue).toFixed(2));
         const seventh = emp.days_worked >= 6 ? dailySalary : 0;
+        const halfDayBonus =
+          emp.days_worked >= 6 && HALF_DAY_BONUS_EMPLOYEE_IDS.has(Number(emp.employee_id))
+            ? dailySalary / 2
+            : 0;
 
         const netPay = Number(
-          (emp.days_worked * dailySalary + hoursMoney + seventh).toFixed(2)
+          (emp.days_worked * dailySalary + hoursMoney + seventh + halfDayBonus).toFixed(2)
         );
 
         alDiaEmployees.push({
