@@ -156,10 +156,10 @@ router.get('/weekly', authenticateToken, async (req, res) => {
         const TMon = emp.total_monado   * 1;
         const PDia = emp.total_pago_dia;
 
-        const totalProd = TDes + TEsc + TMon + PDia;
+        const totalProd = TDes + TEsc + TMon;
 
-        const saturdayBonus = Number((totalProd * 0.090909).toFixed(2));
-        const seventhDay    = Number((totalProd * 0.181818).toFixed(2));
+        const saturdayBonus = Number(((totalProd + PDia) * 0.090909).toFixed(2));
+        const seventhDay    = Number(((totalProd + PDia) * 0.181818).toFixed(2));
 
         const netPay = Number((totalProd + saturdayBonus + seventhDay).toFixed(2));
 
