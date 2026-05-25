@@ -161,7 +161,7 @@ router.get('/weekly', authenticateToken, async (req, res) => {
         const saturdayBonus = Number(((totalProd + PDia) * 0.090909).toFixed(2));
         const seventhDay    = Number(((totalProd + PDia) * 0.181818).toFixed(2));
 
-        const netPay = Number((totalProd + saturdayBonus + seventhDay).toFixed(2));
+        const netPay = Number((totalProd + PDia + saturdayBonus + seventhDay).toFixed(2));
 
         productionEmployees.push({
           employee_id: emp.employee_id,
